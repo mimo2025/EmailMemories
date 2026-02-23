@@ -1,6 +1,8 @@
 # 📬 Email Memories
 > *Like Google Photos Memories or Snapchat Memories — but for your inbox.*
 
+By: Mira Mohan
+
 Email Memories surfaces emails you sent and received on this day in years past. It's part nostalgia, part relationship nudge — reminding you of people and conversations you may have long forgotten.
 
 ---
