@@ -17,7 +17,7 @@ router.get('/', async (req, res) => {
   const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
   const today = new Date();
-  const month = today.getMonth() + 1;
+  const month = today.getMonth() + 1; 
   const day = today.getDate();
 
   const currentYear = today.getFullYear();
@@ -33,7 +33,7 @@ router.get('/', async (req, res) => {
     const response = await gmail.users.messages.list({
       userId: 'me',
       q: `in:anywhere after:${afterTimestamp} before:${beforeTimestamp}`,
-      maxResults: 5,
+      maxResults: 20,
     });
 
     const messages = response.data.messages || [];
@@ -43,12 +43,13 @@ router.get('/', async (req, res) => {
         userId: 'me',
         id: message.id,
         format: 'metadata',
-        metadataHeaders: ['Subject', 'From', 'Date'],
+        metadataHeaders: ['Subject', 'From', 'To', 'Date'],
       });
 
       const headers = details.data.payload.headers;
       const subject = headers.find(h => h.name === 'Subject')?.value || '(no subject)';
       const from = headers.find(h => h.name === 'From')?.value || 'Unknown';
+      const to = headers.find(h => h.name === 'To')?.value || '';
       const date = headers.find(h => h.name === 'Date')?.value || '';
 
       console.log(`Found email: from=${from}, subject=${subject}`);
@@ -56,10 +57,42 @@ router.get('/', async (req, res) => {
       const emailMatch = from.match(/<(.+)>/) || [null, from];
       const senderEmail = emailMatch[1].toLowerCase();
       const personalDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'me.com'];
-      const isRealPerson = personalDomains.some(domain => senderEmail.endsWith(domain));
+      const isPersonalDomain = personalDomains.some(domain => senderEmail.endsWith(domain));
       
-      if (isRealPerson) {
-        memories.push({ year, subject, from, date });
+      const localPart = senderEmail.split('@')[0];
+      const underscoreCount = (localPart.match(/_/g) || []).length;
+      const dotCount = (localPart.match(/\./g) || []).length;
+      const looksLikePerson = (localPart.includes('.') || localPart.includes('_')) && 
+        localPart.length < 20 && 
+        underscoreCount <= 1 && 
+        dotCount <= 2;
+      
+      const isNotBot = !senderEmail.includes('noreply') &&
+        !senderEmail.includes('no-reply') &&
+        !senderEmail.includes('newsletter') &&
+        !senderEmail.includes('notifications') &&
+        !senderEmail.includes('mailer') &&
+        !senderEmail.includes('email.') &&
+        !senderEmail.includes('info@') &&
+        !senderEmail.includes('support@') &&
+        !senderEmail.includes('hello@') &&
+        !senderEmail.includes('team@') &&
+        !senderEmail.includes('contact@') &&
+        !senderEmail.includes('new@');
+
+      const isWorkEmail = isNotBot && looksLikePerson;
+      
+      const isRealPerson = isPersonalDomain || isWorkEmail;
+      
+      const isMeaningful = 
+        !subject.toLowerCase().includes('unsubscribe') &&
+        !subject.toLowerCase().includes('list-') &&
+        !subject.toLowerCase().includes('auto-reply') &&
+        !subject.toLowerCase().includes('out of office') &&
+        subject !== '(no subject)';
+
+      if (isRealPerson && isMeaningful) {
+        memories.push({ year, subject, from, to, date });
       }
     }
   }

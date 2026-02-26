@@ -1,5 +1,14 @@
 import { useState, useEffect } from 'react'
 
+function formatSender(raw) {
+  const match = raw.match(/^(.+?)\s*</)
+  return match ? match[1].trim() : raw
+}
+
+function formatSubject(subject) {
+  return subject.length > 50 ? subject.substring(0, 50) + '...' : subject
+}
+
 function App() {
   const [memories, setMemories] = useState([])
   const [loading, setLoading] = useState(true)
@@ -36,9 +45,9 @@ function App() {
         <h1 className="text-4xl font-bold text-gray-800">📬 Email Memories</h1>
         <p className="text-gray-500 text-lg">Rediscover emails from this day in years past.</p>
         
-          <a href="http://localhost:3001/auth/login"
+         <a href="http://localhost:3001/auth/login"
           className="bg-gray-800 text-white px-6 py-3 rounded-full text-lg hover:bg-gray-700 transition"
-          >
+        >
           Sign in with Google
         </a>
       </div>
@@ -57,8 +66,9 @@ function App() {
           memories.map((memory, index) => (
             <div key={index} className="bg-white rounded-2xl shadow-sm p-6 mb-4 border border-amber-100">
               <p className="text-xs text-amber-500 font-semibold uppercase tracking-wide mb-2">{memory.year} · {new Date(memory.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</p>
-              <h2 className="text-lg font-semibold text-gray-800 mb-1">{memory.subject}</h2>
-              <p className="text-gray-500 text-sm">{memory.from}</p>
+              <h2 className="text-lg font-semibold text-gray-800 mb-1">{formatSubject(memory.subject)}</h2>
+              <p className="text-gray-500 text-sm">From: {formatSender(memory.from)}</p>
+              {memory.to && <p className="text-gray-500 text-sm">To: {formatSender(memory.to)}</p>}
             </div>
           ))
         )}
